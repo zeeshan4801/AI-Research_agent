@@ -2,6 +2,6 @@ streamlit==1.39.0
 crewai==1.15.21
 crewai-tools==0.14.0
 groq==0.13.1
-python-dotenv==1.0.1
 duckduckgo-search==6.3.7
 langchain-groq==0.2.1
+python-dotenv>=1.2.2
