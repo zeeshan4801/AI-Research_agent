@@ -1,6 +1,7 @@
 import streamlit as st
+
 from groq import Groq
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 
 
@@ -25,12 +26,17 @@ def web_search(topic, max_results=5):
 
     results = []
 
-    with DDGS() as ddgs:
+
+    try:
+
+        ddgs = DDGS()
+
 
         search_results = ddgs.text(
             topic,
             max_results=max_results
         )
+
 
         for item in search_results:
 
@@ -42,12 +48,24 @@ def web_search(topic, max_results=5):
                 }
             )
 
+
+    except Exception as e:
+
+        results.append(
+            {
+                "title": "Search Error",
+                "link": "",
+                "snippet": str(e)
+            }
+        )
+
+
     return results
 
 
 
 # -----------------------------------
-# Generate Research Report
+# Generate Report
 # -----------------------------------
 
 def generate_report(topic):
@@ -56,19 +74,19 @@ def generate_report(topic):
     sources = web_search(topic)
 
 
-
     research_data = ""
 
-    for i, source in enumerate(sources, start=1):
+
+    for index, source in enumerate(sources, start=1):
 
         research_data += f"""
 
-Source {i}
+Source {index}
 
 Title:
 {source['title']}
 
-Link:
+URL:
 {source['link']}
 
 Information:
@@ -84,19 +102,19 @@ Information:
 
 You are an expert AI research analyst.
 
-Create a professional research report about:
+Prepare a professional research report about:
 
 {topic}
 
 
-Use the following web research information:
+Use this web research:
 
 
 {research_data}
 
 
 
-Report structure:
+Report Structure:
 
 1. Introduction
 
@@ -106,7 +124,7 @@ Report structure:
 
 4. Key Facts
 
-5. Advantages
+5. Benefits and Opportunities
 
 6. Challenges
 
@@ -115,12 +133,11 @@ Report structure:
 8. Conclusion
 
 
-At the end add:
+Add a final section:
 
-Sources Used:
+Sources Used
 
-List all URLs used in the research.
-
+Include URLs from the research.
 
 Write a detailed professional report.
 
@@ -135,14 +152,13 @@ Write a detailed professional report.
         messages=[
 
             {
-                "role":"system",
-                "content":
-                "You create professional research reports."
+                "role": "system",
+                "content": "You write professional research reports."
             },
 
             {
-                "role":"user",
-                "content":prompt
+                "role": "user",
+                "content": prompt
             }
 
         ],
