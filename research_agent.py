@@ -3,59 +3,67 @@ import streamlit as st
 
 from crewai import Agent, Task, Crew, LLM
 
-from tools import DuckDuckGoSearchTool
 
 
-# -----------------------------
-# API KEY
-# -----------------------------
+# -----------------------------------
+# Load Groq API Key
+# -----------------------------------
 
-groq_api_key = st.secrets["GROQ_API_KEY"]
+try:
+    groq_api_key = st.secrets["GROQ_API_KEY"]
+
+except Exception:
+    st.error("GROQ_API_KEY is missing in Streamlit Secrets.")
+    st.stop()
+
+
+
+# -----------------------------------
+# Environment
+# -----------------------------------
 
 os.environ["GROQ_API_KEY"] = groq_api_key
 
 
-# -----------------------------
-# LLM
-# -----------------------------
+
+# -----------------------------------
+# Groq LLM
+# -----------------------------------
 
 llm = LLM(
+
     model="groq/openai/gpt-oss-120b",
+
     api_key=groq_api_key,
+
     temperature=0.2,
+
     drop_params=True
+
 )
 
 
-# -----------------------------
-# Tool
-# -----------------------------
 
-search_tool = DuckDuckGoSearchTool()
-
-
-# -----------------------------
-# Agent
-# -----------------------------
+# -----------------------------------
+# Research Agent
+# -----------------------------------
 
 researcher = Agent(
 
     role="AI Research Analyst",
 
     goal="""
-Research topics using web search and create
-professional research reports.
+Create detailed, accurate, and professional
+research reports on any given topic.
 """,
 
     backstory="""
-You are an expert research analyst.
-You collect information, analyze it,
-and write structured reports.
+You are an expert AI research analyst.
+You analyze topics, organize information,
+and write high-quality research reports.
 """,
 
     llm=llm,
-
-    tools=[search_tool],
 
     verbose=True,
 
@@ -64,52 +72,72 @@ and write structured reports.
 )
 
 
-# -----------------------------
-# Report Generator
-# -----------------------------
+
+# -----------------------------------
+# Generate Report
+# -----------------------------------
 
 def generate_report(topic):
 
-    task = Task(
+
+    research_task = Task(
 
         description=f"""
-Research this topic:
+
+Prepare a detailed research report on:
 
 {topic}
 
-Write a detailed report with:
+
+Use this structure:
 
 1. Introduction
+
 2. Background
+
 3. Current Information
+
 4. Key Facts
-5. Advantages
-6. Challenges
+
+5. Advantages and Opportunities
+
+6. Challenges and Limitations
+
 7. Future Outlook
+
 8. Conclusion
 
-Use web search information.
+
+Write in a professional research style.
+
 """,
 
         expected_output="""
-A complete professional research report.
+
+A complete professional research report
+with clear headings and explanations.
+
 """,
 
         agent=researcher
+
     )
+
 
 
     crew = Crew(
 
         agents=[researcher],
 
-        tasks=[task],
+        tasks=[research_task],
 
         verbose=True
 
     )
 
 
+
     result = crew.kickoff()
+
 
     return result
