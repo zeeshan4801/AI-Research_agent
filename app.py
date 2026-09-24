@@ -1,4 +1,5 @@
 import streamlit as st
+
 from research_agent import generate_report
 
 from datetime import datetime
@@ -12,6 +13,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet
 
 import io
+import html
 
 
 
@@ -42,35 +44,26 @@ st.markdown(
 
 .main-title {
 
-    font-size:45px;
-    font-weight:700;
-    color:#1f3c88;
+font-size:45px;
+font-weight:700;
+color:#1f3c88;
 
 }
 
 
 .subtitle {
 
-    font-size:18px;
-    color:#555;
-
-}
-
-
-.report-box {
-
-    padding:20px;
-    border-radius:12px;
-    background:#f8f9fa;
+font-size:18px;
+color:#555;
 
 }
 
 
 .stButton button {
 
-    border-radius:10px;
-    height:45px;
-    font-weight:600;
+height:45px;
+border-radius:10px;
+font-weight:600;
 
 }
 
@@ -100,12 +93,11 @@ unsafe_allow_html=True
 
 st.markdown(
 
-"<div class='subtitle'>Generate professional AI-powered research reports with live web research.</div>",
+"<div class='subtitle'>AI-powered research with live web information.</div>",
 
 unsafe_allow_html=True
 
 )
-
 
 
 st.divider()
@@ -122,7 +114,7 @@ with st.sidebar:
     st.header("⚙️ Research Settings")
 
 
-    depth = st.selectbox(
+    report_type = st.selectbox(
 
         "Report Type",
 
@@ -139,9 +131,9 @@ with st.sidebar:
     )
 
 
-    sources = st.slider(
+    source_count = st.slider(
 
-        "Number of Sources",
+        "Sources",
 
         3,
 
@@ -154,14 +146,14 @@ with st.sidebar:
 
     st.info(
 
-        "AI Agent uses web search + Groq AI to create reports."
+        "Powered by Groq AI + DuckDuckGo Search"
 
     )
 
 
 
 # -----------------------------------
-# Input
+# Topic Input
 # -----------------------------------
 
 topic = st.text_input(
@@ -175,7 +167,7 @@ topic = st.text_input(
 
 
 # -----------------------------------
-# Generate
+# Generate Report
 # -----------------------------------
 
 if st.button(
@@ -192,7 +184,7 @@ if st.button(
 
         with st.spinner(
 
-            "AI agent is researching and writing..."
+            "Researching and generating report..."
 
         ):
 
@@ -201,9 +193,9 @@ if st.button(
 
 
 
-        st.session_state["report"] = report
+        st.session_state.report = str(report)
 
-        st.session_state["topic"] = topic
+        st.session_state.topic = topic
 
 
 
@@ -219,9 +211,79 @@ if st.button(
 
         st.warning(
 
-            "Please enter a topic."
+            "Please enter a research topic."
 
         )
+
+
+
+# -----------------------------------
+# PDF Generator
+# -----------------------------------
+
+def create_pdf(text):
+
+
+    buffer = io.BytesIO()
+
+
+    pdf = SimpleDocTemplate(
+
+        buffer
+
+    )
+
+
+    styles = getSampleStyleSheet()
+
+
+    story = []
+
+
+    clean_text = html.escape(text)
+
+
+
+    for line in clean_text.split("\n"):
+
+
+        if line.strip():
+
+
+            story.append(
+
+                Paragraph(
+
+                    line,
+
+                    styles["BodyText"]
+
+                )
+
+            )
+
+
+            story.append(
+
+                Spacer(
+
+                    1,
+
+                    12
+
+                )
+
+            )
+
+
+
+    pdf.build(story)
+
+
+    buffer.seek(0)
+
+
+    return buffer
 
 
 
@@ -244,7 +306,7 @@ if "report" in st.session_state:
 
     st.caption(
 
-        f"Topic: {st.session_state['topic']}"
+        f"Topic: {st.session_state.topic}"
 
     )
 
@@ -256,13 +318,13 @@ if "report" in st.session_state:
     )
 
 
-    st.markdown("---")
+    st.divider()
 
 
 
     st.markdown(
 
-        st.session_state["report"]
+        st.session_state.report
 
     )
 
@@ -272,15 +334,14 @@ if "report" in st.session_state:
 
 
 
-    # -------------------------------
-    # Download Markdown
-    # -------------------------------
+    # Markdown Download
 
-    markdown_file = (
+
+    markdown_data = (
 
         "# AI Research Report\n\n"
 
-        + st.session_state["report"]
+        + st.session_state.report
 
     )
 
@@ -289,9 +350,9 @@ if "report" in st.session_state:
 
         label="⬇️ Download Markdown",
 
-        data=markdown_file,
+        data=markdown_data,
 
-        file_name="research_report.md",
+        file_name="AI_Research_Report.md",
 
         mime="text/markdown"
 
@@ -299,65 +360,12 @@ if "report" in st.session_state:
 
 
 
-    # -------------------------------
-    # Download PDF
-    # -------------------------------
-
-    def create_pdf(text):
+    # PDF Download
 
 
-        buffer = io.BytesIO()
+    pdf = create_pdf(
 
-
-        pdf = SimpleDocTemplate(
-
-            buffer
-
-        )
-
-
-        styles = getSampleStyleSheet()
-
-
-        story = []
-
-
-        for line in text.split("\n"):
-
-
-            story.append(
-
-                Paragraph(
-
-                    line,
-
-                    styles["BodyText"]
-
-                )
-
-            )
-
-
-            story.append(
-
-                Spacer(1,12)
-
-            )
-
-
-        pdf.build(story)
-
-
-        buffer.seek(0)
-
-
-        return buffer
-
-
-
-    pdf_file = create_pdf(
-
-        st.session_state["report"]
+        st.session_state.report
 
     )
 
@@ -366,7 +374,7 @@ if "report" in st.session_state:
 
         label="📄 Download PDF",
 
-        data=pdf_file,
+        data=pdf,
 
         file_name="AI_Research_Report.pdf",
 
