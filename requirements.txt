@@ -1,5 +1,6 @@
 streamlit>=1.40.0
 crewai==1.15.21
 groq==0.13.1
+litellm==1.75.5
 duckduckgo-search==6.3.7
 python-dotenv>=1.2.2
