@@ -1,75 +1,47 @@
+import os
 import streamlit as st
 
 from crewai import Agent, Task, Crew
 
-from groq import Groq
+from langchain_groq import ChatGroq
 
 
 
 # -----------------------------------
-# Load Groq API Key
+# Load API Key
 # -----------------------------------
 
 try:
     groq_api_key = st.secrets["GROQ_API_KEY"]
 
 except Exception:
-    st.error("GROQ_API_KEY is missing in Streamlit Secrets.")
+    st.error("GROQ_API_KEY missing from Streamlit Secrets.")
     st.stop()
 
 
 
+os.environ["GROQ_API_KEY"] = groq_api_key
+
+
+
 # -----------------------------------
-# Groq Client
+# Groq LLM
 # -----------------------------------
 
-client = Groq(
-    api_key=groq_api_key
+llm = ChatGroq(
+
+    model="llama-3.1-8b-instant",
+
+    api_key=groq_api_key,
+
+    temperature=0.2
+
 )
 
 
 
 # -----------------------------------
-# Custom LLM Function
-# -----------------------------------
-
-class GroqLLM:
-
-    def call(self, prompt):
-
-        response = client.chat.completions.create(
-
-            model="llama-3.1-8b-instant",
-
-            messages=[
-
-                {
-                    "role": "system",
-                    "content": "You are an expert research analyst."
-                },
-
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-
-            ],
-
-            temperature=0.2
-
-        )
-
-
-        return response.choices[0].message.content
-
-
-
-llm = GroqLLM()
-
-
-
-# -----------------------------------
-# Research Agent
+# Agent
 # -----------------------------------
 
 researcher = Agent(
@@ -77,13 +49,13 @@ researcher = Agent(
     role="AI Research Analyst",
 
     goal="""
-Create detailed professional research reports
-from given topics.
+Create detailed and professional research reports
+on any given topic.
 """,
 
     backstory="""
-You are an expert research analyst.
-You write accurate, structured reports.
+You are an expert AI research analyst.
+You analyze topics and create structured reports.
 """,
 
     llm=llm,
@@ -105,12 +77,12 @@ def generate_report(topic):
 
         description=f"""
 
-Prepare a detailed research report about:
+Create a detailed research report on:
 
 {topic}
 
 
-Include:
+Follow this structure:
 
 1. Introduction
 
@@ -135,7 +107,7 @@ Write a professional report.
 
         expected_output="""
 
-A complete research report.
+A complete professional research report.
 
 """,
 
