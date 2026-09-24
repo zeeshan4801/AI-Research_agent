@@ -7,13 +7,19 @@ from datetime import datetime
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
-    Spacer
+    Spacer,
+    PageBreak
 )
 
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+from reportlab.lib.pagesizes import letter
+
+from reportlab.lib.enums import TA_CENTER
 
 import io
 import html
+import re
 
 
 
@@ -34,7 +40,7 @@ st.set_page_config(
 
 
 # -----------------------------------
-# Custom CSS
+# UI Styling
 # -----------------------------------
 
 st.markdown(
@@ -50,23 +56,12 @@ color:#1f3c88;
 
 }
 
-
 .subtitle {
 
 font-size:18px;
-color:#555;
+color:#666;
 
 }
-
-
-.stButton button {
-
-height:45px;
-border-radius:10px;
-font-weight:600;
-
-}
-
 
 </style>
 
@@ -90,14 +85,14 @@ unsafe_allow_html=True
 
 )
 
-
 st.markdown(
 
-"<div class='subtitle'>AI-powered research with live web information.</div>",
+"<div class='subtitle'>Professional AI-powered research reports with live web research.</div>",
 
 unsafe_allow_html=True
 
 )
+
 
 
 st.divider()
@@ -110,13 +105,12 @@ st.divider()
 
 with st.sidebar:
 
-
-    st.header("⚙️ Research Settings")
+    st.header("⚙️ Settings")
 
 
     report_type = st.selectbox(
 
-        "Report Type",
+        "Report Style",
 
         [
 
@@ -131,29 +125,9 @@ with st.sidebar:
     )
 
 
-    source_count = st.slider(
-
-        "Sources",
-
-        3,
-
-        10,
-
-        5
-
-    )
-
-
-    st.info(
-
-        "Powered by Groq AI + DuckDuckGo Search"
-
-    )
-
-
 
 # -----------------------------------
-# Topic Input
+# Input
 # -----------------------------------
 
 topic = st.text_input(
@@ -166,31 +140,23 @@ topic = st.text_input(
 
 
 
-# -----------------------------------
-# Generate Report
-# -----------------------------------
-
 if st.button(
 
-    "🚀 Generate Research Report",
+    "🚀 Generate Report",
 
     use_container_width=True
 
 ):
 
-
     if topic.strip():
-
 
         with st.spinner(
 
-            "Researching and generating report..."
+            "Researching..."
 
         ):
 
-
             report = generate_report(topic)
-
 
 
         st.session_state.report = str(report)
@@ -198,20 +164,18 @@ if st.button(
         st.session_state.topic = topic
 
 
-
         st.success(
 
-            "Report Generated Successfully"
+            "Report Generated"
 
         )
 
 
     else:
 
-
         st.warning(
 
-            "Please enter a research topic."
+            "Enter a topic first."
 
         )
 
@@ -221,7 +185,63 @@ if st.button(
 # PDF Generator
 # -----------------------------------
 
-def create_pdf(text):
+def add_page_number(canvas, doc):
+
+    canvas.saveState()
+
+
+    canvas.setFont(
+
+        "Helvetica",
+
+        9
+
+    )
+
+
+    canvas.drawCentredString(
+
+        letter[0] / 2,
+
+        25,
+
+        f"AI Research Agent | Page {doc.page}"
+
+    )
+
+
+    canvas.restoreState()
+
+
+
+def clean_text(text):
+
+    text = html.escape(text)
+
+
+    text = text.replace(
+
+        "##",
+
+        ""
+
+    )
+
+
+    text = text.replace(
+
+        "**",
+
+        ""
+
+    )
+
+
+    return text
+
+
+
+def create_pdf(report, topic):
 
 
     buffer = io.BytesIO()
@@ -229,7 +249,17 @@ def create_pdf(text):
 
     pdf = SimpleDocTemplate(
 
-        buffer
+        buffer,
+
+        pagesize=letter,
+
+        rightMargin=60,
+
+        leftMargin=60,
+
+        topMargin=60,
+
+        bottomMargin=60
 
     )
 
@@ -237,17 +267,199 @@ def create_pdf(text):
     styles = getSampleStyleSheet()
 
 
+
+    title_style = ParagraphStyle(
+
+        "title",
+
+        parent=styles["Title"],
+
+        alignment=TA_CENTER,
+
+        fontSize=22,
+
+        spaceAfter=20
+
+    )
+
+
+
+    subtitle_style = ParagraphStyle(
+
+        "subtitle",
+
+        parent=styles["Normal"],
+
+        alignment=TA_CENTER,
+
+        fontSize=12
+
+    )
+
+
+
+    heading_style = ParagraphStyle(
+
+        "heading",
+
+        parent=styles["Heading2"],
+
+        fontSize=15,
+
+        spaceBefore=15,
+
+        spaceAfter=10
+
+    )
+
+
+
+    body_style = ParagraphStyle(
+
+        "body",
+
+        parent=styles["BodyText"],
+
+        fontSize=11,
+
+        leading=16
+
+    )
+
+
+
     story = []
 
 
-    clean_text = html.escape(text)
+
+    # Cover Page
+
+
+    story.append(
+
+        Spacer(
+
+            1,
+
+            120
+
+        )
+
+    )
+
+
+    story.append(
+
+        Paragraph(
+
+            "AI RESEARCH AGENT",
+
+            title_style
+
+        )
+
+    )
+
+
+    story.append(
+
+        Paragraph(
+
+            "Powered by Groq AI",
+
+            subtitle_style
+
+        )
+
+    )
+
+
+    story.append(
+
+        Spacer(
+
+            1,
+
+            40
+
+        )
+
+    )
+
+
+    story.append(
+
+        Paragraph(
+
+            f"Research Topic:<br/>{topic}",
+
+            subtitle_style
+
+        )
+
+    )
+
+
+    story.append(
+
+        Spacer(
+
+            1,
+
+            20
+
+        )
+
+    )
+
+
+    story.append(
+
+        Paragraph(
+
+            datetime.now().strftime("%d %B %Y"),
+
+            subtitle_style
+
+        )
+
+    )
+
+
+    story.append(
+
+        PageBreak()
+
+    )
 
 
 
-    for line in clean_text.split("\n"):
+    # Report Content
 
 
-        if line.strip():
+    for line in report.split("\n"):
+
+
+        line = line.strip()
+
+
+        if not line:
+
+            continue
+
+
+
+        line = clean_text(line)
+
+
+
+        if re.match(
+
+            r"^\d+\.",
+
+            line
+
+        ):
 
 
             story.append(
@@ -256,20 +468,23 @@ def create_pdf(text):
 
                     line,
 
-                    styles["BodyText"]
+                    heading_style
 
                 )
 
             )
+
+
+        else:
 
 
             story.append(
 
-                Spacer(
+                Paragraph(
 
-                    1,
+                    line,
 
-                    12
+                    body_style
 
                 )
 
@@ -277,7 +492,29 @@ def create_pdf(text):
 
 
 
-    pdf.build(story)
+        story.append(
+
+            Spacer(
+
+                1,
+
+                8
+
+            )
+
+        )
+
+
+
+    pdf.build(
+
+        story,
+
+        onFirstPage=add_page_number,
+
+        onLaterPages=add_page_number
+
+    )
 
 
     buffer.seek(0)
@@ -306,20 +543,9 @@ if "report" in st.session_state:
 
     st.caption(
 
-        f"Topic: {st.session_state.topic}"
+        st.session_state.topic
 
     )
-
-
-    st.caption(
-
-        f"Generated: {datetime.now().strftime('%d %B %Y')}"
-
-    )
-
-
-    st.divider()
-
 
 
     st.markdown(
@@ -329,52 +555,24 @@ if "report" in st.session_state:
     )
 
 
-
     st.divider()
 
 
 
-    # Markdown Download
+    pdf_file = create_pdf(
 
+        st.session_state.report,
 
-    markdown_data = (
-
-        "# AI Research Report\n\n"
-
-        + st.session_state.report
+        st.session_state.topic
 
     )
 
 
     st.download_button(
 
-        label="⬇️ Download Markdown",
+        "📄 Download Professional PDF",
 
-        data=markdown_data,
-
-        file_name="AI_Research_Report.md",
-
-        mime="text/markdown"
-
-    )
-
-
-
-    # PDF Download
-
-
-    pdf = create_pdf(
-
-        st.session_state.report
-
-    )
-
-
-    st.download_button(
-
-        label="📄 Download PDF",
-
-        data=pdf,
+        pdf_file,
 
         file_name="AI_Research_Report.pdf",
 
