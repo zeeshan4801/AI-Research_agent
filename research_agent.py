@@ -3,16 +3,21 @@ from groq import Groq
 
 
 # -----------------------------------
-# Groq Client
+# Load Groq API Key
 # -----------------------------------
 
 try:
     groq_api_key = st.secrets["GROQ_API_KEY"]
 
 except Exception:
-    st.error("GROQ_API_KEY missing from Streamlit Secrets.")
+    st.error("GROQ_API_KEY is missing from Streamlit Secrets.")
     st.stop()
 
+
+
+# -----------------------------------
+# Groq Client
+# -----------------------------------
 
 client = Groq(
     api_key=groq_api_key
@@ -26,11 +31,12 @@ client = Groq(
 
 def generate_report(topic):
 
+
     prompt = f"""
 
 You are an expert AI research analyst.
 
-Research and write a professional report on:
+Create a detailed professional research report about:
 
 {topic}
 
@@ -54,14 +60,14 @@ Use this structure:
 8. Conclusion
 
 
-Write a detailed and well-structured report.
+Write a complete, well-organized report.
 
 """
 
 
     response = client.chat.completions.create(
 
-        model="llama-3.1-8b-instant",
+        model="openai/gpt-oss-120b",
 
         messages=[
 
