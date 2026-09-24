@@ -1,14 +1,7 @@
 import streamlit as st
-
 from research_agent import generate_report
 
 from datetime import datetime
-
-import io
-import re
-import html
-
-import markdown
 
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -20,18 +13,18 @@ from reportlab.platypus import (
 )
 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-
 from reportlab.lib.pagesizes import letter
-
 from reportlab.lib.enums import TA_CENTER
 
-from reportlab.lib import colors
+import io
+import re
+import html
 
 
 
-# ---------------------------------
-# Page Config
-# ---------------------------------
+# -----------------------------
+# Page Setup
+# -----------------------------
 
 st.set_page_config(
     page_title="AI Research Agent",
@@ -41,21 +34,21 @@ st.set_page_config(
 
 
 
-# ---------------------------------
-# UI
-# ---------------------------------
+# -----------------------------
+# UI Design
+# -----------------------------
 
 st.markdown(
 """
 <style>
 
-.main-title{
+.main-title {
 font-size:45px;
 font-weight:700;
 color:#1f3c88;
 }
 
-.subtitle{
+.subtitle {
 font-size:18px;
 color:#555;
 }
@@ -73,7 +66,7 @@ unsafe_allow_html=True
 
 
 st.markdown(
-"<div class='subtitle'>Professional AI-powered research reports.</div>",
+"<div class='subtitle'>Generate professional AI research reports.</div>",
 unsafe_allow_html=True
 )
 
@@ -82,32 +75,12 @@ st.divider()
 
 
 
-# ---------------------------------
-# Sidebar
-# ---------------------------------
-
-with st.sidebar:
-
-    st.header("⚙️ Settings")
-
-    report_style = st.selectbox(
-        "Report Style",
-        [
-            "Quick Report",
-            "Detailed Report",
-            "Academic Report"
-        ]
-    )
-
-
-
-# ---------------------------------
+# -----------------------------
 # Input
-# ---------------------------------
+# -----------------------------
 
 topic = st.text_input(
-    "Enter Research Topic",
-    placeholder="Example: Artificial Intelligence in Healthcare"
+    "Enter Research Topic"
 )
 
 
@@ -120,7 +93,7 @@ if st.button(
     if topic.strip():
 
         with st.spinner(
-            "Generating report..."
+            "Researching..."
         ):
 
             report = generate_report(topic)
@@ -135,20 +108,42 @@ if st.button(
             "Report Generated Successfully"
         )
 
-
     else:
 
         st.warning(
-            "Please enter topic"
+            "Enter a topic first"
         )
 
 
 
-# ---------------------------------
-# Markdown Cleaner
-# ---------------------------------
+# -----------------------------
+# Text Cleaning
+# -----------------------------
 
-def clean_markdown(text):
+def clean_text(text):
+
+
+    # remove html
+
+    text = re.sub(
+        r"<[^>]+>",
+        "",
+        text
+    )
+
+
+    # remove markdown
+
+    text = text.replace(
+        "**",
+        ""
+    )
+
+
+    text = text.replace(
+        "__",
+        ""
+    )
 
 
     text = text.replace(
@@ -157,35 +152,66 @@ def clean_markdown(text):
     )
 
 
+    # remove markdown table lines
+
     text = re.sub(
-        r"\*\*(.*?)\*\*",
-        r"\1",
+        r"\|[-:\s|]+\|",
+        "",
         text
     )
 
 
-    text = re.sub(
-        r"\*(.*?)\*",
-        r"\1",
-        text
-    )
-
+    # replace table separators
 
     text = text.replace(
-        "`",
-        ""
+        "|",
+        " "
     )
 
 
-    return text.strip()
+    # remove invisible characters
+
+    text = re.sub(
+        r"[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E]",
+        "",
+        text
+    )
+
+
+    # replace strange symbols
+
+    replacements = {
+
+        "■":"",
+        "•":"-",
+        "–":"-",
+        "—":"-",
+        "“":'"',
+        "”":'"',
+        "’":"'"
+
+    }
+
+
+    for old,new in replacements.items():
+
+        text = text.replace(
+            old,
+            new
+        )
+
+
+    return html.escape(
+        text.strip()
+    )
 
 
 
-# ---------------------------------
+# -----------------------------
 # PDF Footer
-# ---------------------------------
+# -----------------------------
 
-def footer(canvas, doc):
+def footer(canvas,doc):
 
     canvas.saveState()
 
@@ -196,9 +222,13 @@ def footer(canvas, doc):
 
 
     canvas.drawCentredString(
+
         letter[0]/2,
+
         25,
+
         f"AI Research Agent | Page {doc.page}"
+
     )
 
 
@@ -206,11 +236,11 @@ def footer(canvas, doc):
 
 
 
-# ---------------------------------
-# PDF Generator
-# ---------------------------------
+# -----------------------------
+# Create PDF
+# -----------------------------
 
-def create_pdf(report, topic):
+def create_pdf(report,topic):
 
 
     buffer = io.BytesIO()
@@ -222,9 +252,9 @@ def create_pdf(report, topic):
 
         pagesize=letter,
 
-        rightMargin=60,
-
         leftMargin=60,
+
+        rightMargin=60,
 
         topMargin=60,
 
@@ -246,9 +276,7 @@ def create_pdf(report, topic):
 
         alignment=TA_CENTER,
 
-        fontSize=22,
-
-        spaceAfter=20
+        fontSize=22
 
     )
 
@@ -262,9 +290,7 @@ def create_pdf(report, topic):
 
         fontSize=15,
 
-        spaceBefore=15,
-
-        spaceAfter=10
+        spaceBefore=15
 
     )
 
@@ -297,39 +323,64 @@ def create_pdf(report, topic):
 
 
     story.append(
+
         Paragraph(
+
             "AI RESEARCH AGENT",
+
             title_style
+
         )
+
     )
 
 
     story.append(
+        Spacer(1,20)
+    )
+
+
+    story.append(
+
         Paragraph(
+
             "Powered by Groq AI",
+
             body_style
+
         )
+
     )
 
 
     story.append(
-        Spacer(1,40)
+        Spacer(1,30)
     )
 
 
     story.append(
+
         Paragraph(
-            f"Research Topic:<br/>{html.escape(topic)}",
+
+            f"Research Topic: {html.escape(topic)}",
+
             body_style
+
         )
+
     )
 
 
     story.append(
+
         Paragraph(
+
             datetime.now().strftime("%d %B %Y"),
+
             body_style
+
         )
+
     )
 
 
@@ -339,17 +390,10 @@ def create_pdf(report, topic):
 
 
 
-    # Clean Markdown
-
-    report = clean_markdown(report)
+    # Report Body
 
 
-
-    lines = report.split("\n")
-
-
-
-    for line in lines:
+    for line in report.split("\n"):
 
 
         line=line.strip()
@@ -361,16 +405,16 @@ def create_pdf(report, topic):
 
 
 
-        safe_line = html.escape(line)
+        cleaned = clean_text(line)
 
-
-
-        # headings
 
 
         if re.match(
+
             r"^(#|\d+\.)",
+
             line
+
         ):
 
 
@@ -378,16 +422,13 @@ def create_pdf(report, topic):
 
                 Paragraph(
 
-                    safe_line.replace("#",""),
+                    cleaned.replace("#",""),
 
                     heading_style
 
                 )
 
             )
-
-
-        # bullets
 
 
         elif line.startswith("-"):
@@ -397,7 +438,7 @@ def create_pdf(report, topic):
 
                 Paragraph(
 
-                    "• " + safe_line[1:].strip(),
+                    "• " + cleaned[1:],
 
                     body_style
 
@@ -413,7 +454,7 @@ def create_pdf(report, topic):
 
                 Paragraph(
 
-                    safe_line,
+                    cleaned,
 
                     body_style
 
@@ -446,9 +487,9 @@ def create_pdf(report, topic):
 
 
 
-# ---------------------------------
+# -----------------------------
 # Display
-# ---------------------------------
+# -----------------------------
 
 if "report" in st.session_state:
 
@@ -466,18 +507,13 @@ if "report" in st.session_state:
     )
 
 
-    st.divider()
-
-
-
-    pdf_file=create_pdf(
+    pdf_file = create_pdf(
 
         st.session_state.report,
 
         st.session_state.topic
 
     )
-
 
 
     st.download_button(
