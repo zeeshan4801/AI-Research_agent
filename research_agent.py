@@ -7,20 +7,25 @@ from tools import DuckDuckGoSearchTool
 
 
 # -----------------------------------
-# Get Groq API Key from Streamlit
+# Load Groq API Key
 # -----------------------------------
 
-groq_api_key = st.secrets["GROQ_API_KEY"]
+try:
+    groq_api_key = st.secrets["GROQ_API_KEY"]
+
+except Exception:
+    st.error("GROQ_API_KEY is missing from Streamlit Secrets.")
+    st.stop()
 
 
 
 # -----------------------------------
-# CrewAI LLM using Groq
+# Groq LLM Configuration
 # -----------------------------------
 
 llm = LLM(
 
-    model="groq/openai/gpt-oss-120b",
+    model="groq/gpt-oss-120b",
 
     api_key=groq_api_key,
 
@@ -31,7 +36,7 @@ llm = LLM(
 
 
 # -----------------------------------
-# Web Search Tool
+# DuckDuckGo Search Tool
 # -----------------------------------
 
 search_tool = DuckDuckGoSearchTool()
@@ -39,7 +44,7 @@ search_tool = DuckDuckGoSearchTool()
 
 
 # -----------------------------------
-# Single Research Agent
+# Research Agent
 # -----------------------------------
 
 researcher = Agent(
@@ -48,13 +53,13 @@ researcher = Agent(
 
     goal="""
 Research any given topic using web search
-and create an accurate professional report.
+and create a detailed, accurate, professional report.
 """,
 
     backstory="""
 You are an expert AI research analyst.
-You search for relevant information,
-analyze facts, and write structured reports.
+You search the internet, collect useful information,
+analyze facts, and prepare structured research reports.
 """,
 
     tools=[search_tool],
@@ -68,7 +73,7 @@ analyze facts, and write structured reports.
 
 
 # -----------------------------------
-# Generate Report Function
+# Generate Report
 # -----------------------------------
 
 def generate_report(topic):
@@ -77,14 +82,13 @@ def generate_report(topic):
     research_task = Task(
 
         description=f"""
+
 Research the following topic:
 
 {topic}
 
 
-Create a detailed research report.
-
-Follow this structure:
+Create a detailed research report with these sections:
 
 1. Introduction
 
@@ -103,14 +107,16 @@ Follow this structure:
 8. Conclusion
 
 
-Use information collected from web search.
-Include important sources where available.
+Use web search information.
+Write the report in a professional format.
 
 """,
 
         expected_output="""
+
 A complete professional research report
-with clear headings and detailed explanations.
+with headings, explanations, and important facts.
+
 """,
 
         agent=researcher
