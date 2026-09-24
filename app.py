@@ -17,9 +17,14 @@ from reportlab.lib.pagesizes import letter
 
 from reportlab.lib.enums import TA_CENTER
 
+from reportlab.pdfbase import pdfmetrics
+
+from reportlab.pdfbase.ttfonts import TTFont
+
 import io
 import html
 import re
+import os
 
 
 
@@ -40,7 +45,28 @@ st.set_page_config(
 
 
 # -----------------------------------
-# UI Styling
+# Register Unicode Font
+# -----------------------------------
+
+font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+
+pdfmetrics.registerFont(
+
+    TTFont(
+
+        "DejaVu",
+
+        font_path
+
+    )
+
+)
+
+
+
+# -----------------------------------
+# UI CSS
 # -----------------------------------
 
 st.markdown(
@@ -56,12 +82,14 @@ color:#1f3c88;
 
 }
 
+
 .subtitle {
 
 font-size:18px;
-color:#666;
+color:#555;
 
 }
+
 
 </style>
 
@@ -85,14 +113,14 @@ unsafe_allow_html=True
 
 )
 
+
 st.markdown(
 
-"<div class='subtitle'>Professional AI-powered research reports with live web research.</div>",
+"<div class='subtitle'>Professional AI powered research reports with live web research.</div>",
 
 unsafe_allow_html=True
 
 )
-
 
 
 st.divider()
@@ -105,10 +133,11 @@ st.divider()
 
 with st.sidebar:
 
-    st.header("⚙️ Settings")
+
+    st.header("⚙️ Research Settings")
 
 
-    report_type = st.selectbox(
+    report_style = st.selectbox(
 
         "Report Style",
 
@@ -148,15 +177,19 @@ if st.button(
 
 ):
 
+
     if topic.strip():
+
 
         with st.spinner(
 
-            "Researching..."
+            "AI agent is researching..."
 
         ):
 
+
             report = generate_report(topic)
+
 
 
         st.session_state.report = str(report)
@@ -166,33 +199,94 @@ if st.button(
 
         st.success(
 
-            "Report Generated"
+            "Report Generated Successfully"
 
         )
 
 
     else:
 
+
         st.warning(
 
-            "Enter a topic first."
+            "Please enter a topic."
 
         )
 
 
 
 # -----------------------------------
-# PDF Generator
+# Clean PDF Text
 # -----------------------------------
 
-def add_page_number(canvas, doc):
+def clean_text(text):
+
+
+    replacements = {
+
+        "\u2013": "-",
+
+        "\u2014": "-",
+
+        "\u2018": "'",
+
+        "\u2019": "'",
+
+        "\u201c": '"',
+
+        "\u201d": '"',
+
+        "\u00a0": " ",
+
+        "\u2022": "-",
+
+        "\u200b": ""
+
+    }
+
+
+    for old, new in replacements.items():
+
+        text = text.replace(
+
+            old,
+
+            new
+
+        )
+
+
+    text = re.sub(
+
+        r"[^\x00-\x7F]+",
+
+        "",
+
+        text
+
+    )
+
+
+    text = html.escape(text)
+
+
+    return text
+
+
+
+# -----------------------------------
+# Page Number Footer
+# -----------------------------------
+
+def add_footer(canvas, doc):
+
 
     canvas.saveState()
 
 
     canvas.setFont(
 
-        "Helvetica",
+        "DejaVu",
 
         9
 
@@ -214,32 +308,9 @@ def add_page_number(canvas, doc):
 
 
 
-def clean_text(text):
-
-    text = html.escape(text)
-
-
-    text = text.replace(
-
-        "##",
-
-        ""
-
-    )
-
-
-    text = text.replace(
-
-        "**",
-
-        ""
-
-    )
-
-
-    return text
-
-
+# -----------------------------------
+# PDF Generator
+# -----------------------------------
 
 def create_pdf(report, topic):
 
@@ -270,15 +341,15 @@ def create_pdf(report, topic):
 
     title_style = ParagraphStyle(
 
-        "title",
+        "TitleCustom",
 
         parent=styles["Title"],
 
+        fontName="DejaVu",
+
         alignment=TA_CENTER,
 
-        fontSize=22,
-
-        spaceAfter=20
+        fontSize=24
 
     )
 
@@ -286,9 +357,11 @@ def create_pdf(report, topic):
 
     subtitle_style = ParagraphStyle(
 
-        "subtitle",
+        "SubtitleCustom",
 
         parent=styles["Normal"],
+
+        fontName="DejaVu",
 
         alignment=TA_CENTER,
 
@@ -300,15 +373,15 @@ def create_pdf(report, topic):
 
     heading_style = ParagraphStyle(
 
-        "heading",
+        "HeadingCustom",
 
         parent=styles["Heading2"],
 
+        fontName="DejaVu",
+
         fontSize=15,
 
-        spaceBefore=15,
-
-        spaceAfter=10
+        spaceBefore=15
 
     )
 
@@ -316,9 +389,11 @@ def create_pdf(report, topic):
 
     body_style = ParagraphStyle(
 
-        "body",
+        "BodyCustom",
 
         parent=styles["BodyText"],
+
+        fontName="DejaVu",
 
         fontSize=11,
 
@@ -363,6 +438,19 @@ def create_pdf(report, topic):
 
     story.append(
 
+        Spacer(
+
+            1,
+
+            20
+
+        )
+
+    )
+
+
+    story.append(
+
         Paragraph(
 
             "Powered by Groq AI",
@@ -391,7 +479,7 @@ def create_pdf(report, topic):
 
         Paragraph(
 
-            f"Research Topic:<br/>{topic}",
+            f"Research Topic:<br/>{html.escape(topic)}",
 
             subtitle_style
 
@@ -455,7 +543,7 @@ def create_pdf(report, topic):
 
         if re.match(
 
-            r"^\d+\.",
+            r"^(\d+\.|#)",
 
             line
 
@@ -466,7 +554,7 @@ def create_pdf(report, topic):
 
                 Paragraph(
 
-                    line,
+                    line.replace("#",""),
 
                     heading_style
 
@@ -491,7 +579,6 @@ def create_pdf(report, topic):
             )
 
 
-
         story.append(
 
             Spacer(
@@ -510,9 +597,9 @@ def create_pdf(report, topic):
 
         story,
 
-        onFirstPage=add_page_number,
+        onFirstPage=add_footer,
 
-        onLaterPages=add_page_number
+        onLaterPages=add_footer
 
     )
 
@@ -525,7 +612,7 @@ def create_pdf(report, topic):
 
 
 # -----------------------------------
-# Display Report
+# Show Report
 # -----------------------------------
 
 if "report" in st.session_state:
@@ -570,9 +657,9 @@ if "report" in st.session_state:
 
     st.download_button(
 
-        "📄 Download Professional PDF",
+        label="📄 Download Professional PDF",
 
-        pdf_file,
+        data=pdf_file,
 
         file_name="AI_Research_Report.pdf",
 
