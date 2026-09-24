@@ -1,27 +1,48 @@
 import streamlit as st
 from groq import Groq
-
-
-# -----------------------------------
-# Load Groq API Key
-# -----------------------------------
-
-try:
-    groq_api_key = st.secrets["GROQ_API_KEY"]
-
-except Exception:
-    st.error("GROQ_API_KEY is missing from Streamlit Secrets.")
-    st.stop()
+from duckduckgo_search import DDGS
 
 
 
 # -----------------------------------
-# Groq Client
+# Groq API
 # -----------------------------------
+
+groq_api_key = st.secrets["GROQ_API_KEY"]
+
 
 client = Groq(
     api_key=groq_api_key
 )
+
+
+
+# -----------------------------------
+# DuckDuckGo Search
+# -----------------------------------
+
+def web_search(topic, max_results=5):
+
+    results = []
+
+    with DDGS() as ddgs:
+
+        search_results = ddgs.text(
+            topic,
+            max_results=max_results
+        )
+
+        for item in search_results:
+
+            results.append(
+                {
+                    "title": item.get("title"),
+                    "link": item.get("href"),
+                    "snippet": item.get("body")
+                }
+            )
+
+    return results
 
 
 
@@ -32,16 +53,50 @@ client = Groq(
 def generate_report(topic):
 
 
+    sources = web_search(topic)
+
+
+
+    research_data = ""
+
+    for i, source in enumerate(sources, start=1):
+
+        research_data += f"""
+
+Source {i}
+
+Title:
+{source['title']}
+
+Link:
+{source['link']}
+
+Information:
+{source['snippet']}
+
+--------------------
+
+"""
+
+
+
     prompt = f"""
 
 You are an expert AI research analyst.
 
-Create a detailed professional research report about:
+Create a professional research report about:
 
 {topic}
 
 
-Use this structure:
+Use the following web research information:
+
+
+{research_data}
+
+
+
+Report structure:
 
 1. Introduction
 
@@ -60,9 +115,17 @@ Use this structure:
 8. Conclusion
 
 
-Write a complete, well-organized report.
+At the end add:
+
+Sources Used:
+
+List all URLs used in the research.
+
+
+Write a detailed professional report.
 
 """
+
 
 
     response = client.chat.completions.create(
@@ -72,13 +135,14 @@ Write a complete, well-organized report.
         messages=[
 
             {
-                "role": "system",
-                "content": "You are a professional research analyst."
+                "role":"system",
+                "content":
+                "You create professional research reports."
             },
 
             {
-                "role": "user",
-                "content": prompt
+                "role":"user",
+                "content":prompt
             }
 
         ],
