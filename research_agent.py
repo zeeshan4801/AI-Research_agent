@@ -1,7 +1,8 @@
-import os
 import streamlit as st
 
-from crewai import Agent, Task, Crew, LLM
+from crewai import Agent, Task, Crew
+
+from groq import Groq
 
 
 
@@ -13,32 +14,57 @@ try:
     groq_api_key = st.secrets["GROQ_API_KEY"]
 
 except Exception:
-    st.error("GROQ_API_KEY is missing from Streamlit Secrets.")
+    st.error("GROQ_API_KEY is missing in Streamlit Secrets.")
     st.stop()
 
 
 
 # -----------------------------------
-# Environment Setup
+# Groq Client
 # -----------------------------------
 
-os.environ["GROQ_API_KEY"] = groq_api_key
-
-
-
-# -----------------------------------
-# Groq LLM
-# -----------------------------------
-
-llm = LLM(
-
-    model="groq/llama-3.1-8b-instant",
-
-    api_key=groq_api_key,
-
-    temperature=0
-
+client = Groq(
+    api_key=groq_api_key
 )
+
+
+
+# -----------------------------------
+# Custom LLM Function
+# -----------------------------------
+
+class GroqLLM:
+
+    def call(self, prompt):
+
+        response = client.chat.completions.create(
+
+            model="llama-3.1-8b-instant",
+
+            messages=[
+
+                {
+                    "role": "system",
+                    "content": "You are an expert research analyst."
+                },
+
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+
+            ],
+
+            temperature=0.2
+
+        )
+
+
+        return response.choices[0].message.content
+
+
+
+llm = GroqLLM()
 
 
 
@@ -51,20 +77,18 @@ researcher = Agent(
     role="AI Research Analyst",
 
     goal="""
-Create accurate and structured research reports
-on different topics.
+Create detailed professional research reports
+from given topics.
 """,
 
     backstory="""
-You are an AI research analyst.
-You analyze topics and write professional reports.
+You are an expert research analyst.
+You write accurate, structured reports.
 """,
 
     llm=llm,
 
-    verbose=True,
-
-    max_iter=3
+    verbose=True
 
 )
 
@@ -77,16 +101,16 @@ You analyze topics and write professional reports.
 def generate_report(topic):
 
 
-    research_task = Task(
+    task = Task(
 
         description=f"""
 
-Create a detailed research report on:
+Prepare a detailed research report about:
 
 {topic}
 
 
-Use this structure:
+Include:
 
 1. Introduction
 
@@ -94,7 +118,7 @@ Use this structure:
 
 3. Important Facts
 
-4. Current Situation
+4. Current Information
 
 5. Advantages
 
@@ -105,14 +129,13 @@ Use this structure:
 8. Conclusion
 
 
-Write in a professional style.
+Write a professional report.
 
 """,
 
         expected_output="""
 
-A complete research report with headings
-and detailed explanations.
+A complete research report.
 
 """,
 
@@ -121,11 +144,12 @@ and detailed explanations.
     )
 
 
+
     crew = Crew(
 
         agents=[researcher],
 
-        tasks=[research_task],
+        tasks=[task],
 
         verbose=True
 
