@@ -17,14 +17,9 @@ from reportlab.lib.pagesizes import letter
 
 from reportlab.lib.enums import TA_CENTER
 
-from reportlab.pdfbase import pdfmetrics
-
-from reportlab.pdfbase.ttfonts import TTFont
-
 import io
 import html
 import re
-import os
 
 
 
@@ -45,28 +40,7 @@ st.set_page_config(
 
 
 # -----------------------------------
-# Register Unicode Font
-# -----------------------------------
-
-font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-
-
-pdfmetrics.registerFont(
-
-    TTFont(
-
-        "DejaVu",
-
-        font_path
-
-    )
-
-)
-
-
-
-# -----------------------------------
-# UI CSS
+# UI
 # -----------------------------------
 
 st.markdown(
@@ -82,14 +56,12 @@ color:#1f3c88;
 
 }
 
-
 .subtitle {
 
 font-size:18px;
 color:#555;
 
 }
-
 
 </style>
 
@@ -100,10 +72,6 @@ unsafe_allow_html=True
 )
 
 
-
-# -----------------------------------
-# Header
-# -----------------------------------
 
 st.markdown(
 
@@ -116,7 +84,7 @@ unsafe_allow_html=True
 
 st.markdown(
 
-"<div class='subtitle'>Professional AI powered research reports with live web research.</div>",
+"<div class='subtitle'>Professional AI-powered research reports.</div>",
 
 unsafe_allow_html=True
 
@@ -133,8 +101,7 @@ st.divider()
 
 with st.sidebar:
 
-
-    st.header("⚙️ Research Settings")
+    st.header("⚙️ Settings")
 
 
     report_style = st.selectbox(
@@ -163,7 +130,7 @@ topic = st.text_input(
 
     "Enter Research Topic",
 
-    placeholder="Example: Future of Artificial Intelligence"
+    placeholder="Example: Artificial Intelligence in Healthcare"
 
 )
 
@@ -183,7 +150,7 @@ if st.button(
 
         with st.spinner(
 
-            "AI agent is researching..."
+            "Generating research report..."
 
         ):
 
@@ -206,17 +173,16 @@ if st.button(
 
     else:
 
-
         st.warning(
 
-            "Please enter a topic."
+            "Please enter topic."
 
         )
 
 
 
 # -----------------------------------
-# Clean PDF Text
+# Clean Text For PDF
 # -----------------------------------
 
 def clean_text(text):
@@ -275,7 +241,7 @@ def clean_text(text):
 
 
 # -----------------------------------
-# Page Number Footer
+# Footer
 # -----------------------------------
 
 def add_footer(canvas, doc):
@@ -286,7 +252,7 @@ def add_footer(canvas, doc):
 
     canvas.setFont(
 
-        "DejaVu",
+        "Helvetica",
 
         9
 
@@ -335,21 +301,20 @@ def create_pdf(report, topic):
     )
 
 
+
     styles = getSampleStyleSheet()
 
 
 
     title_style = ParagraphStyle(
 
-        "TitleCustom",
+        "title",
 
         parent=styles["Title"],
 
-        fontName="DejaVu",
-
         alignment=TA_CENTER,
 
-        fontSize=24
+        fontSize=22
 
     )
 
@@ -357,11 +322,9 @@ def create_pdf(report, topic):
 
     subtitle_style = ParagraphStyle(
 
-        "SubtitleCustom",
+        "subtitle",
 
         parent=styles["Normal"],
-
-        fontName="DejaVu",
 
         alignment=TA_CENTER,
 
@@ -373,11 +336,9 @@ def create_pdf(report, topic):
 
     heading_style = ParagraphStyle(
 
-        "HeadingCustom",
+        "heading",
 
         parent=styles["Heading2"],
-
-        fontName="DejaVu",
 
         fontSize=15,
 
@@ -389,11 +350,9 @@ def create_pdf(report, topic):
 
     body_style = ParagraphStyle(
 
-        "BodyCustom",
+        "body",
 
         parent=styles["BodyText"],
-
-        fontName="DejaVu",
 
         fontSize=11,
 
@@ -409,16 +368,9 @@ def create_pdf(report, topic):
 
     # Cover Page
 
-
     story.append(
 
-        Spacer(
-
-            1,
-
-            120
-
-        )
+        Spacer(1,120)
 
     )
 
@@ -438,13 +390,7 @@ def create_pdf(report, topic):
 
     story.append(
 
-        Spacer(
-
-            1,
-
-            20
-
-        )
+        Spacer(1,20)
 
     )
 
@@ -464,13 +410,7 @@ def create_pdf(report, topic):
 
     story.append(
 
-        Spacer(
-
-            1,
-
-            40
-
-        )
+        Spacer(1,40)
 
     )
 
@@ -490,13 +430,7 @@ def create_pdf(report, topic):
 
     story.append(
 
-        Spacer(
-
-            1,
-
-            20
-
-        )
+        Spacer(1,20)
 
     )
 
@@ -522,8 +456,7 @@ def create_pdf(report, topic):
 
 
 
-    # Report Content
-
+    # Report Body
 
     for line in report.split("\n"):
 
@@ -543,7 +476,7 @@ def create_pdf(report, topic):
 
         if re.match(
 
-            r"^(\d+\.|#)",
+            r"^(#|\d+\.)",
 
             line
 
@@ -579,15 +512,10 @@ def create_pdf(report, topic):
             )
 
 
+
         story.append(
 
-            Spacer(
-
-                1,
-
-                8
-
-            )
+            Spacer(1,8)
 
         )
 
@@ -612,7 +540,7 @@ def create_pdf(report, topic):
 
 
 # -----------------------------------
-# Show Report
+# Display
 # -----------------------------------
 
 if "report" in st.session_state:
@@ -645,7 +573,6 @@ if "report" in st.session_state:
     st.divider()
 
 
-
     pdf_file = create_pdf(
 
         st.session_state.report,
@@ -657,9 +584,9 @@ if "report" in st.session_state:
 
     st.download_button(
 
-        label="📄 Download Professional PDF",
+        "📄 Download Professional PDF",
 
-        data=pdf_file,
+        pdf_file,
 
         file_name="AI_Research_Report.pdf",
 
