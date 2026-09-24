@@ -6,13 +6,17 @@ from tools import DuckDuckGoSearchTool
 
 
 
-# Get Groq API Key
+# -----------------------------------
+# Get Groq API Key from Streamlit
+# -----------------------------------
 
 groq_api_key = st.secrets["GROQ_API_KEY"]
 
 
 
-# CrewAI native LLM
+# -----------------------------------
+# CrewAI LLM using Groq
+# -----------------------------------
 
 llm = LLM(
 
@@ -26,27 +30,31 @@ llm = LLM(
 
 
 
-# Search Tool
+# -----------------------------------
+# Web Search Tool
+# -----------------------------------
 
 search_tool = DuckDuckGoSearchTool()
 
 
 
-# Agent
+# -----------------------------------
+# Single Research Agent
+# -----------------------------------
 
 researcher = Agent(
 
     role="AI Research Analyst",
 
     goal="""
-Research topics using web search and create
-accurate professional research reports.
+Research any given topic using web search
+and create an accurate professional report.
 """,
 
     backstory="""
 You are an expert AI research analyst.
-You collect information, analyze sources,
-and write structured reports.
+You search for relevant information,
+analyze facts, and write structured reports.
 """,
 
     tools=[search_tool],
@@ -59,38 +67,50 @@ and write structured reports.
 
 
 
+# -----------------------------------
+# Generate Report Function
+# -----------------------------------
+
 def generate_report(topic):
 
 
-    task = Task(
+    research_task = Task(
 
         description=f"""
-
 Research the following topic:
 
 {topic}
 
 
-Create a detailed report with:
+Create a detailed research report.
+
+Follow this structure:
 
 1. Introduction
+
 2. Background
+
 3. Current Information
+
 4. Key Facts
-5. Advantages
-6. Challenges
-7. Future Trends
+
+5. Benefits and Opportunities
+
+6. Challenges and Limitations
+
+7. Future Outlook
+
 8. Conclusion
 
 
-Use web search information.
+Use information collected from web search.
+Include important sources where available.
 
 """,
 
         expected_output="""
-
-A professional research report with clear sections.
-
+A complete professional research report
+with clear headings and detailed explanations.
 """,
 
         agent=researcher
@@ -98,15 +118,17 @@ A professional research report with clear sections.
     )
 
 
+
     crew = Crew(
 
         agents=[researcher],
 
-        tasks=[task],
+        tasks=[research_task],
 
         verbose=True
 
     )
+
 
 
     result = crew.kickoff()
