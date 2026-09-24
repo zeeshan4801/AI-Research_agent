@@ -1,29 +1,24 @@
 import streamlit as st
 
-from crewai import Agent, Task, Crew
-from langchain_groq import ChatGroq
+from crewai import Agent, Task, Crew, LLM
 
 from tools import DuckDuckGoSearchTool
 
 
 
-# -----------------------------
-# Groq API Key from Streamlit Secrets
-# -----------------------------
+# Get Groq API Key
 
 groq_api_key = st.secrets["GROQ_API_KEY"]
 
 
 
-# -----------------------------
-# Groq LLM
-# -----------------------------
+# CrewAI native LLM
 
-llm = ChatGroq(
+llm = LLM(
+
+    model="groq/openai/gpt-oss-120b",
 
     api_key=groq_api_key,
-
-    model="openai/gpt-oss-120b",
 
     temperature=0.2
 
@@ -31,31 +26,27 @@ llm = ChatGroq(
 
 
 
-# -----------------------------
 # Search Tool
-# -----------------------------
 
 search_tool = DuckDuckGoSearchTool()
 
 
 
-# -----------------------------
-# Single Research Agent
-# -----------------------------
+# Agent
 
 researcher = Agent(
 
     role="AI Research Analyst",
 
     goal="""
-Research any given topic using web search
-and create a detailed, accurate professional report.
+Research topics using web search and create
+accurate professional research reports.
 """,
 
     backstory="""
 You are an expert AI research analyst.
-You collect information from online sources,
-analyze important points, and write structured reports.
+You collect information, analyze sources,
+and write structured reports.
 """,
 
     tools=[search_tool],
@@ -68,14 +59,10 @@ analyze important points, and write structured reports.
 
 
 
-# -----------------------------
-# Generate Research Report
-# -----------------------------
-
 def generate_report(topic):
 
 
-    research_task = Task(
+    task = Task(
 
         description=f"""
 
@@ -84,36 +71,25 @@ Research the following topic:
 {topic}
 
 
-Create a complete research report.
-
-Follow this structure:
+Create a detailed report with:
 
 1. Introduction
-
 2. Background
-
 3. Current Information
-
 4. Key Facts
-
-5. Benefits
-
+5. Advantages
 6. Challenges
-
 7. Future Trends
-
 8. Conclusion
 
 
-Use information collected from web search.
-Mention important sources when possible.
+Use web search information.
 
 """,
 
         expected_output="""
 
-A detailed professional research report
-with clear headings and paragraphs.
+A professional research report with clear sections.
 
 """,
 
@@ -122,17 +98,15 @@ with clear headings and paragraphs.
     )
 
 
-
     crew = Crew(
 
         agents=[researcher],
 
-        tasks=[research_task],
+        tasks=[task],
 
         verbose=True
 
     )
-
 
 
     result = crew.kickoff()
